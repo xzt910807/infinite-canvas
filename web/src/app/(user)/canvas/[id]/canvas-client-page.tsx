@@ -1935,11 +1935,17 @@ function InfiniteCanvasPage() {
 
     const handleImageInputChange = useCallback(
         async (event: ReactChangeEvent<HTMLInputElement>) => {
-            const file = event.target.files?.[0];
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
             const target = uploadTargetRef.current;
-            if (!file || (!file.type.startsWith("image/") && !file.type.startsWith("video/") && !isAudioFile(file))) return;
+
+            const validFiles = Array.from(files).filter(
+                (f) => f.type.startsWith("image/") || f.type.startsWith("video/") || isAudioFile(f),
+            );
+            if (validFiles.length === 0) return;
 
             if (target?.nodeId) {
+                const file = validFiles[0];
                 const hideLoading = message.loading(isAudioFile(file) ? "正在上传音频..." : file.type.startsWith("video/") ? "正在上传视频..." : "正在上传图片...", 0);
                 try {
                     if (isAudioFile(file)) {
@@ -2001,7 +2007,12 @@ function InfiniteCanvasPage() {
                 }
             } else {
                 const position = target?.position || screenToCanvas((containerRef.current?.getBoundingClientRect().left || 0) + size.width / 2, (containerRef.current?.getBoundingClientRect().top || 0) + size.height / 2);
-                void (isAudioFile(file) ? createAudioFileNode(file, position) : file.type.startsWith("video/") ? createVideoFileNode(file, position) : createImageFileNode(file, position));
+                const gap = 96;
+                for (let i = 0; i < validFiles.length; i++) {
+                    const file = validFiles[i];
+                    const offset = { x: position.x + i * (NODE_DEFAULT_SIZE[CanvasNodeType.Image].width + gap), y: position.y };
+                    void (isAudioFile(file) ? createAudioFileNode(file, offset) : file.type.startsWith("video/") ? createVideoFileNode(file, offset) : createImageFileNode(file, offset));
+                }
             }
 
             uploadTargetRef.current = null;
@@ -2013,11 +2024,18 @@ function InfiniteCanvasPage() {
     const handleDrop = useCallback(
         (event: ReactDragEvent<HTMLDivElement>) => {
             event.preventDefault();
-            const file = Array.from(event.dataTransfer.files).find((item) => item.type.startsWith("image/") || item.type.startsWith("video/") || isAudioFile(item));
-            if (!file) return;
+            const files = Array.from(event.dataTransfer.files).filter(
+                (item) => item.type.startsWith("image/") || item.type.startsWith("video/") || isAudioFile(item),
+            );
+            if (files.length === 0) return;
 
-            const pos = screenToCanvas(event.clientX, event.clientY);
-            void (isAudioFile(file) ? createAudioFileNode(file, pos) : file.type.startsWith("video/") ? createVideoFileNode(file, pos) : createImageFileNode(file, pos));
+            const basePos = screenToCanvas(event.clientX, event.clientY);
+            const gap = 96;
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const pos = { x: basePos.x + i * (NODE_DEFAULT_SIZE[CanvasNodeType.Image].width + gap), y: basePos.y };
+                void (isAudioFile(file) ? createAudioFileNode(file, pos) : file.type.startsWith("video/") ? createVideoFileNode(file, pos) : createImageFileNode(file, pos));
+            }
         },
         [createAudioFileNode, createImageFileNode, createVideoFileNode, screenToCanvas],
     );
@@ -2802,7 +2820,7 @@ function InfiniteCanvasPage() {
                     />
                 ) : null}
 
-                <input ref={imageInputRef} type="file" accept="image/*,video/*,audio/mpeg,audio/wav,audio/x-wav,.mp3,.wav" className="hidden" onChange={handleImageInputChange} />
+                <input ref={imageInputRef} type="file" accept="image/*,video/*,audio/mpeg,audio/wav,audio/x-wav,.mp3,.wav" multiple className="hidden" onChange={handleImageInputChange} />
 
                 <CanvasNodeInfoModal node={infoNode} open={Boolean(infoNode)} onClose={() => setInfoNodeId(null)} />
 
