@@ -74,6 +74,25 @@ func LinuxDoCallback(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, loginRedirect(r, redirect, session.Token, ""), http.StatusFound)
 }
 
+func SSOCallback(w http.ResponseWriter, r *http.Request) {
+	tokenText := r.URL.Query().Get("token")
+	if strings.TrimSpace(tokenText) == "" {
+		http.Redirect(w, r, loginRedirect(r, "", "", "missing SSO token"), http.StatusFound)
+		return
+	}
+	claims, err := service.ValidateSSOToken(tokenText)
+	if err != nil {
+		http.Redirect(w, r, loginRedirect(r, "", "", err.Error()), http.StatusFound)
+		return
+	}
+	session, err := service.LoginWithSSO(claims)
+	if err != nil {
+		http.Redirect(w, r, loginRedirect(r, "", "", err.Error()), http.StatusFound)
+		return
+	}
+	http.Redirect(w, r, loginRedirect(r, "", session.Token, ""), http.StatusFound)
+}
+
 func AdminLogin(w http.ResponseWriter, r *http.Request) {
 	var request loginRequest
 	_ = json.NewDecoder(r.Body).Decode(&request)

@@ -31,6 +31,8 @@ type User struct {
 	GithubID    string     `json:"githubId"`
 	LinuxDoID   string     `json:"linuxDoId" gorm:"index"`
 	WechatID    string     `json:"wechatId"`
+	NewApiID    string     `json:"newApiId" gorm:"index"`
+	NewApiToken string     `json:"newApiToken,omitempty" gorm:"index"`
 	Status      UserStatus `json:"status"`
 	LastLoginAt string     `json:"lastLoginAt"`
 	Extra       string     `json:"extra" gorm:"type:text"`

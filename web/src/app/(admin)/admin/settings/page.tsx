@@ -44,7 +44,7 @@ const emptySettings: AdminSettings = {
     },
     private: { channels: [], promptSync: { enabled: true, cron: "0 0 * * *" }, aiLog: { localDirectReportEnabled: false, cleanup: { enabled: false, retentionDays: 14, cron: "0 3 * * *" } }, auth: { linuxDo: { clientId: "", clientSecret: "" } }, storage: { mode: "local_indexeddb", allowUserProvider: false, providers: [], roundRobinCursor: 0, capacityCheck: { enabled: false, cron: "0 */6 * * *" }, capacityLimitBytes: 9 * 1024 * 1024 * 1024 } },
 };
-const emptyChannel: AdminModelChannel = { id: "", protocol: "openai", name: "", baseUrl: "", apiKey: "", models: [], weight: 1, timeout: 600, enabled: true, remark: "" };
+const emptyChannel: AdminModelChannel = { id: "", protocol: "openai", name: "", baseUrl: "", apiKey: "", models: [], weight: 1, timeout: 600, enabled: true, remark: "", userTokenBilling: false };
 const emptyStorageProvider: AdminStorageProvider = { id: "", name: "", type: "s3", endpoint: "", region: "auto", bucket: "", accessKeyId: "", secretAccessKey: "", publicBaseUrl: "", pathPrefix: "canvas", weight: 1, enabled: true, ownerUserId: "", capacityBytes: 0, capacityCheckedAt: "", capacityExceeded: false };
 
 type SettingsTabKey = "public" | "private";
@@ -859,6 +859,11 @@ export default function AdminSettingsPage() {
                                     <Switch />
                                 </Form.Item>
                             </Col>
+                            <Col span={12}>
+                                <Form.Item name="userTokenBilling" label="用户令牌计费" valuePropName="checked" extra="开启后改用当前用户的 new-api 令牌鉴权与计费，画布不再扣除算力点">
+                                    <Switch />
+                                </Form.Item>
+                            </Col>
                             <Col span={24}>
                                 <Form.Item name="baseUrl" label="接口地址" rules={[{ required: true, message: "请输入接口地址" }]}>
                                     <Input />
@@ -1135,6 +1140,7 @@ function normalizeChannel(item: Partial<AdminModelChannel> = {}): AdminModelChan
         weight: Math.max(1, Number(item.weight) || 1),
         timeout: Math.max(1, Number(item.timeout) || 600),
         enabled: item.enabled !== false,
+        userTokenBilling: item.userTokenBilling === true,
         remark: item.remark || "",
     };
 }

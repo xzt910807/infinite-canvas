@@ -172,6 +172,7 @@ export type AdminModelChannel = {
     timeout: number;
     enabled: boolean;
     remark: string;
+    userTokenBilling?: boolean;
 };
 
 export type AdminPublicModelChannelSettings = {

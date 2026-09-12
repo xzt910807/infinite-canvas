@@ -32,6 +32,20 @@ func selectAIRequestChannel(user model.AuthUser, modelName string, channelID str
 	return channel, "", err
 }
 
+// userTokenBillingChannelKey decides the upstream Authorization for channels
+// with UserTokenBilling enabled: the caller's new-api token replaces the
+// channel key and billing moves entirely to new-api.
+func userTokenBillingChannelKey(channel model.ModelChannel, userChannelID string, user model.AuthUser) (string, bool, error) {
+	if channel.UserTokenBilling && userChannelID == "" {
+		token, err := service.UserNewApiToken(user.ID)
+		if err != nil {
+			return "", true, err
+		}
+		return token, true, nil
+	}
+	return channel.APIKey, false, nil
+}
+
 func failAIChannelSelect(w http.ResponseWriter, err error, fallback string) {
 	message := strings.TrimSpace(err.Error())
 	switch message {
@@ -92,10 +106,16 @@ func proxyAIGetRequest(w http.ResponseWriter, r *http.Request, path string) {
 	if strings.TrimSpace(modelName) == "" {
 		modelName = "Agnes-Video-V2.0"
 	}
-	channel, _, err := selectAIRequestChannel(user, modelName, r.Header.Get("X-Model-Channel-ID"), r.Header.Get(userModelChannelHeader))
+	channel, userChannelID, err := selectAIRequestChannel(user, modelName, r.Header.Get("X-Model-Channel-ID"), r.Header.Get(userModelChannelHeader))
 	if err != nil {
 		log.Printf("AI proxy select channel failed: model=%s err=%v", modelName, err)
 		failAIChannelSelect(w, err, "AI 接口请求失败")
+		return
+	}
+	apiKey, _, err := userTokenBillingChannelKey(channel, userChannelID, user)
+	if err != nil {
+		log.Printf("AI proxy user token billing failed: user=%s model=%s err=%v", user.ID, modelName, err)
+		FailError(w, err)
 		return
 	}
 	upstreamPath := resolveAIProxyPath(channel, modelName, path)
@@ -104,7 +124,7 @@ func proxyAIGetRequest(w http.ResponseWriter, r *http.Request, path string) {
 		Fail(w, "AI 接口请求失败")
 		return
 	}
-	request.Header.Set("Authorization", "Bearer "+channel.APIKey)
+	request.Header.Set("Authorization", "Bearer "+apiKey)
 	copyAIResponse(w, request, channel, aiLogContext{StartedAt: startedAt, Endpoint: path, Method: http.MethodGet, Model: modelName, Channel: channel, UserID: user.ID, UserDisplayName: firstNonEmpty(user.DisplayName, user.Username), RequestBody: summarizeQueryParams(r.URL.Query())}, nil)
 }
 
@@ -127,8 +147,14 @@ func proxyAIRequest(w http.ResponseWriter, r *http.Request, path string) {
 		failAIChannelSelect(w, err, "AI 接口请求失败")
 		return
 	}
+	apiKey, billedByNewAPI, err := userTokenBillingChannelKey(channel, userChannelID, user)
+	if err != nil {
+		log.Printf("AI proxy user token billing failed: user=%s model=%s err=%v", user.ID, modelName, err)
+		FailError(w, err)
+		return
+	}
 	credits := 0
-	if userChannelID == "" {
+	if !billedByNewAPI && userChannelID == "" {
 		credits, err = service.ModelCost(modelName)
 		if err != nil {
 			log.Printf("AI proxy read model cost failed: model=%s err=%v", modelName, err)
@@ -166,7 +192,7 @@ func proxyAIRequest(w http.ResponseWriter, r *http.Request, path string) {
 		Fail(w, "AI 接口请求失败")
 		return
 	}
-	request.Header.Set("Authorization", "Bearer "+channel.APIKey)
+	request.Header.Set("Authorization", "Bearer "+apiKey)
 	if contentType != "" {
 		request.Header.Set("Content-Type", contentType)
 	}

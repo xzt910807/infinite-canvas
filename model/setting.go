@@ -21,6 +21,9 @@ type ModelChannel struct {
 	Timeout  int      `json:"timeout"`
 	Enabled  bool     `json:"enabled"`
 	Remark   string   `json:"remark"`
+	// UserTokenBilling 让该渠道的请求改用当前用户的 new-api 令牌计费：
+	// 上游 Authorization 换成用户令牌，canvas 不再扣算力点。
+	UserTokenBilling bool `json:"userTokenBilling,omitempty"`
 }
 
 // ModelCost 模型算力点配置。

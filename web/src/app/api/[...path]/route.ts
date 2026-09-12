@@ -12,7 +12,10 @@ function proxyHeaders(request: NextRequest) {
     headers.delete("host");
     headers.delete("content-length");
     headers.delete("connection");
-    headers.set("x-forwarded-host", request.nextUrl.host);
+    // Prefer the host the browser actually used; request.nextUrl.host can
+    // resolve to the bind address (e.g. 0.0.0.0) when the dev server is
+    // started with -H 0.0.0.0, which browsers refuse to navigate back to.
+    headers.set("x-forwarded-host", request.headers.get("host") || request.nextUrl.host);
     headers.set("x-forwarded-proto", request.nextUrl.protocol.replace(":", ""));
     return headers;
 }

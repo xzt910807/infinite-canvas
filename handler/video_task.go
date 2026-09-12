@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -72,8 +73,14 @@ func proxyAIVideoTaskRequest(w http.ResponseWriter, r *http.Request) {
 		failAIChannelSelect(w, err, "AI 接口请求失败")
 		return
 	}
+	apiKey, billedByNewAPI, err := userTokenBillingChannelKey(channel, userChannelID, user)
+	if err != nil {
+		log.Printf("AI video user token billing failed: user=%s model=%s err=%v", user.ID, modelName, err)
+		FailError(w, err)
+		return
+	}
 	credits := 0
-	if userChannelID == "" {
+	if !billedByNewAPI && userChannelID == "" {
 		credits, err = service.ModelCost(modelName)
 		if err != nil {
 			log.Printf("AI video read model cost failed: model=%s err=%v", modelName, err)
@@ -95,7 +102,7 @@ func proxyAIVideoTaskRequest(w http.ResponseWriter, r *http.Request) {
 		Fail(w, "AI 接口请求失败")
 		return
 	}
-	request.Header.Set("Authorization", "Bearer "+channel.APIKey)
+	request.Header.Set("Authorization", "Bearer "+apiKey)
 	if contentType != "" {
 		request.Header.Set("Content-Type", contentType)
 	}
@@ -127,6 +134,9 @@ func proxyAIVideoTaskRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	if status >= http.StatusBadRequest {
 		message := readUpstreamAIErrorMessage(payload, status)
+		if billedByNewAPI && (status == http.StatusUnauthorized || status == http.StatusForbidden) {
+			message = "访问令牌已失效，请从 new-api 重新进入画布"
+		}
 		if credits > 0 {
 			refundVideoCredits(user.ID, modelName, credits, upstreamPath)
 		}
@@ -233,6 +243,9 @@ func pollVideoTaskFromUpstream(task model.VideoTask) (service.VideoTaskPollUpdat
 	if err != nil {
 		return service.VideoTaskPollUpdate{}, err
 	}
+	if channel.UserTokenBilling && strings.TrimSpace(task.UserChannelID) == "" {
+		return pollVideoTaskFromNewAPI(task, channel)
+	}
 	pollID := firstNonEmpty(task.UpstreamTaskID, task.ID)
 	if isAgnesVideoModel(task.Model) && strings.HasPrefix(task.UpstreamVideoID, "video_") {
 		pollID = task.UpstreamVideoID
@@ -296,6 +309,100 @@ func pollVideoTaskFromUpstream(task model.VideoTask) (service.VideoTaskPollUpdat
 		ErrorDetail:  parsed.ErrorDetail,
 		ResponseBody: string(transformed),
 	}, nil
+}
+
+// pollVideoTaskFromNewAPI 轮询 new-api 通用任务端点（GET /v1/video/generations/{task_id}），
+// 使用任务归属用户的 new-api 令牌鉴权；计费、退款与任务状态均由 new-api 侧完成，
+// canvas 只同步展示状态与结果视频直链。
+func pollVideoTaskFromNewAPI(task model.VideoTask, channel model.ModelChannel) (service.VideoTaskPollUpdate, error) {
+	token, err := service.UserNewApiToken(task.UserID)
+	if err != nil {
+		// 令牌缺失（用户尚未重新 SSO）：记录错误详情并保持当前状态等待下次轮询。
+		return service.VideoTaskPollUpdate{Status: task.Status, ErrorDetail: err.Error()}, nil
+	}
+	endpoint := "/video/generations/" + url.PathEscape(task.UpstreamTaskID)
+	request, err := http.NewRequest(http.MethodGet, service.BuildModelChannelURL(channel, endpoint), nil)
+	if err != nil {
+		return service.VideoTaskPollUpdate{}, err
+	}
+	request.Header.Set("Authorization", "Bearer "+token)
+	logContext := aiLogContext{
+		StartedAt:       time.Now(),
+		Endpoint:        endpoint,
+		Method:          http.MethodGet,
+		Model:           task.Model,
+		Channel:         channel,
+		UserID:          task.UserID,
+		UserDisplayName: task.UserDisplayName,
+		RequestBody:     fmt.Sprintf(`{"taskId":%q}`, task.UpstreamTaskID),
+	}
+	payload, status, err := doAIRequest(request, channel)
+	if err != nil {
+		saveAIProxyLog(logContext, 0, "", err.Error())
+		return service.VideoTaskPollUpdate{}, err
+	}
+	if status >= http.StatusBadRequest {
+		message := readUpstreamAIErrorMessage(payload, status)
+		saveAIProxyLog(logContext, status, string(payload), strings.TrimSpace(string(payload)))
+		if status == http.StatusUnauthorized || status == http.StatusForbidden || status == http.StatusTooManyRequests {
+			// 令牌失效或限流：任务停在 processing，等待用户重新 SSO 或下次轮询。
+			return service.VideoTaskPollUpdate{Status: task.Status, ErrorDetail: message, ResponseBody: string(payload)}, nil
+		}
+		return service.VideoTaskPollUpdate{Status: "failed", Error: message, ErrorDetail: message, ResponseBody: string(payload)}, nil
+	}
+	parsed := parseNewAPITaskStatusPayload(payload)
+	saveAIProxyLog(logContext, status, string(payload), firstNonEmpty(parsed.Error, ""))
+	return service.VideoTaskPollUpdate{
+		Status:       parsed.Status,
+		Progress:     parsed.Progress,
+		Seconds:      parsed.Seconds,
+		Size:         parsed.Size,
+		VideoURL:     parsed.VideoURL,
+		Error:        parsed.Error,
+		ErrorDetail:  parsed.ErrorDetail,
+		ResponseBody: string(payload),
+	}, nil
+}
+
+// parseNewAPITaskStatusPayload 解析 new-api 通用任务端点响应
+// {code:"success", data:{task_id, status, progress, result_url, fail_reason, ...}}。
+func parseNewAPITaskStatusPayload(payload []byte) parsedVideoTaskPayload {
+	var root any
+	if len(payload) == 0 || json.Unmarshal(payload, &root) != nil {
+		return parsedVideoTaskPayload{Status: "processing"}
+	}
+	data := normalizeVideoPayloadMap(root)
+	var status string
+	switch strings.ToLower(strings.TrimSpace(readStringPath(data, "status"))) {
+	case "success":
+		status = "completed"
+	case "failure":
+		status = "failed"
+	case "queued", "submitted", "not_start":
+		status = "queued"
+	default:
+		status = "processing"
+	}
+	result := parsedVideoTaskPayload{
+		UpstreamTaskID: readStringPath(data, "task_id"),
+		Status:         status,
+		Progress:       readIntPath(data, "progress"),
+		Seconds:        firstNonEmpty(readStringPath(data, "seconds"), readStringPath(data, "duration")),
+		Size:           firstNonEmpty(readStringPath(data, "size"), readSizeFromDimensions(data)),
+		VideoURL:       firstNonEmpty(readStringPath(data, "result_url"), readStringPath(data, "url")),
+		Error:          readStringPath(data, "fail_reason"),
+	}
+	if status == "failed" && result.Error == "" {
+		result.Error = "视频任务生成失败"
+	}
+	if result.VideoURL != "" {
+		result.Status = "completed"
+		result.Progress = 100
+	}
+	if result.Error != "" {
+		result.ErrorDetail = string(payload)
+	}
+	return result
 }
 
 func normalizeVideoCreateBody(body []byte, contentType string, modelName string, channel model.ModelChannel, upstreamPath string) ([]byte, string, error) {
