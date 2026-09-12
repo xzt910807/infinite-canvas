@@ -107,19 +107,26 @@ function buildComposerGenerationContext(inputs: NodeGenerationInput[], prompt: s
     const effectiveReferenceImages = referenceImages.filter((image) => !frameNodeIds.has(image.id));
 
     if (!hasToken) {
+        // No @[node:xxx] tokens in composer — fall back to including all connected
+        // resources as references so users don't have to explicitly tag every input.
+        const allReferenceImages = inputs.filter((input) => !advanced.referenceNodeIds.has(input.nodeId)).map((input) => input.image).filter((image): image is ReferenceImage => Boolean(image));
+        const allReferenceVideos = inputs.filter((input) => !advanced.referenceNodeIds.has(input.nodeId)).map((input) => input.video).filter((video): video is ReferenceVideo => Boolean(video));
+        const allReferenceAudios = inputs.filter((input) => !advanced.referenceNodeIds.has(input.nodeId)).map((input) => input.audio).filter((audio): audio is ReferenceAudio => Boolean(audio));
+        const fallbackFrameNodeIds = new Set([frameReferences.firstFrame?.id, frameReferences.lastFrame?.id].filter((id): id is string => Boolean(id)));
+        const fallbackReferenceImages = allReferenceImages.filter((image) => !fallbackFrameNodeIds.has(image.id));
         return {
             prompt,
-            referenceImages: advanced.klingImageReferences,
+            referenceImages: [...advanced.klingImageReferences, ...fallbackReferenceImages],
             firstFrame: frameReferences.firstFrame,
             lastFrame: frameReferences.lastFrame,
-            referenceVideos: [],
-            referenceAudios: [],
+            referenceVideos: allReferenceVideos,
+            referenceAudios: allReferenceAudios,
             videoMultiPrompt: advanced.videoMultiPrompt,
             videoElementList: advanced.videoElementList,
             textCount: 0,
-            imageCount: 0,
-            videoCount: 0,
-            audioCount: 0,
+            imageCount: allReferenceImages.length,
+            videoCount: allReferenceVideos.length,
+            audioCount: allReferenceAudios.length,
         };
     }
 
