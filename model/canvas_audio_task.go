@@ -1,31 +1,31 @@
 package model
 
 type CanvasAudioTask struct {
-	ID              string `json:"id" gorm:"primaryKey"`
-	UserID          string `json:"userId"`
-	UserDisplayName string `json:"userDisplayName"`
-	Source          string `json:"source"`
-	SourceID        string `json:"sourceId"`
-	NodeID          string `json:"nodeId"`
-	Model           string `json:"model"`
-	ChannelID       string `json:"channelId"`
-	UserChannelID   string `json:"userChannelId"`
-	ChannelName     string `json:"channelName"`
-	Status          string `json:"status"`
+	ID              string `json:"id" gorm:"primaryKey;size:64"`
+	UserID          string `json:"userId" gorm:"size:64"`
+	UserDisplayName string `json:"userDisplayName" gorm:"size:191"`
+	Source          string `json:"source" gorm:"size:32"`
+	SourceID        string `json:"sourceId" gorm:"size:64"`
+	NodeID          string `json:"nodeId" gorm:"size:64"`
+	Model           string `json:"model" gorm:"size:128"`
+	ChannelID       string `json:"channelId" gorm:"size:64"`
+	UserChannelID   string `json:"userChannelId" gorm:"size:64"`
+	ChannelName     string `json:"channelName" gorm:"size:191"`
+	Status          string `json:"status" gorm:"size:32"`
 	Progress        int    `json:"progress"`
 	Prompt          string `json:"prompt" gorm:"type:text"`
-	Endpoint        string `json:"endpoint"`
-	ContentType     string `json:"contentType"`
+	Endpoint        string `json:"endpoint" gorm:"size:191"`
+	ContentType     string `json:"contentType" gorm:"size:128"`
 	RequestBody     string `json:"requestBody" gorm:"type:text"`
 	ResponseBody    string `json:"responseBody" gorm:"type:text"`
 	Error           string `json:"error" gorm:"type:text"`
 	ErrorDetail     string `json:"errorDetail" gorm:"type:text"`
 	AudioURL        string `json:"audioUrl" gorm:"type:text"`
-	StorageKey      string `json:"storageKey"`
-	MimeType        string `json:"mimeType"`
+	StorageKey      string `json:"storageKey" gorm:"size:512"`
+	MimeType        string `json:"mimeType" gorm:"size:128"`
 	Bytes           int64  `json:"bytes"`
-	CreatedAt       string `json:"createdAt"`
-	UpdatedAt       string `json:"updatedAt"`
-	StartedAt       string `json:"startedAt"`
-	CompletedAt     string `json:"completedAt"`
+	CreatedAt       string `json:"createdAt" gorm:"size:64"`
+	UpdatedAt       string `json:"updatedAt" gorm:"size:64"`
+	StartedAt       string `json:"startedAt" gorm:"size:64"`
+	CompletedAt     string `json:"completedAt" gorm:"size:64"`
 }

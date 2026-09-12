@@ -64,6 +64,16 @@ func DB() (*gorm.DB, error) {
 		if dbErr != nil {
 			return
 		}
+		// 限制连接池：远程 MySQL 的 max_connections 有限（默认 151），
+		// 多实例部署时无上限连接池会把数据库连接打满。
+		if sqlDB, err := db.DB(); err == nil {
+			if config.Cfg.DBMaxOpenConns > 0 {
+				sqlDB.SetMaxOpenConns(config.Cfg.DBMaxOpenConns)
+			}
+			if config.Cfg.DBMaxIdleConns > 0 {
+				sqlDB.SetMaxIdleConns(config.Cfg.DBMaxIdleConns)
+			}
+		}
 		dbErr = db.AutoMigrate(
 			&model.User{},
 			&model.CreditLog{},

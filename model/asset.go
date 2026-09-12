@@ -9,17 +9,17 @@ const (
 
 // Asset 素材记录。
 type Asset struct {
-	ID          string    `json:"id" gorm:"primaryKey"`
-	Title       string    `json:"title"`
-	Type        AssetType `json:"type"`
-	CoverURL    string    `json:"coverUrl"`
+	ID          string    `json:"id" gorm:"primaryKey;size:64"`
+	Title       string    `json:"title" gorm:"size:512"`
+	Type        AssetType `json:"type" gorm:"size:16"`
+	CoverURL    string    `json:"coverUrl" gorm:"size:512"`
 	Tags        []string  `json:"tags" gorm:"serializer:json"`
-	Category    string    `json:"category"`
-	Description string    `json:"description"`
-	Content     string    `json:"content,omitempty"`
-	URL         string    `json:"url,omitempty"`
-	CreatedAt   string    `json:"createdAt"`
-	UpdatedAt   string    `json:"updatedAt"`
+	Category    string    `json:"category" gorm:"size:64"`
+	Description string    `json:"description" gorm:"size:1024"`
+	Content     string    `json:"content,omitempty" gorm:"type:text"`
+	URL         string    `json:"url,omitempty" gorm:"size:1024"`
+	CreatedAt   string    `json:"createdAt" gorm:"size:64"`
+	UpdatedAt   string    `json:"updatedAt" gorm:"size:64"`
 }
 
 // AssetList 素材分页结果。

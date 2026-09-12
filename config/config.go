@@ -20,6 +20,8 @@ type Config struct {
 	SSOSecret           string `env:"SSO_SECRET" envDefault:""`
 	StorageDriver       string `env:"STORAGE_DRIVER" envDefault:"sqlite"`
 	DatabaseDSN         string `env:"DATABASE_DSN" envDefault:"data/infinite-canvas.db"`
+	DBMaxOpenConns      int    `env:"DB_MAX_OPEN_CONNS" envDefault:"30"`
+	DBMaxIdleConns      int    `env:"DB_MAX_IDLE_CONNS" envDefault:"10"`
 	PublicBaseURL       string `env:"PUBLIC_BASE_URL"`
 	LinuxDoAuthorizeURL string `env:"LINUX_DO_AUTHORIZE_URL" envDefault:"https://connect.linux.do/oauth2/authorize"`
 	LinuxDoTokenURL     string `env:"LINUX_DO_TOKEN_URL" envDefault:"https://connect.linux.do/oauth2/token"`

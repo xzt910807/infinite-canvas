@@ -17,27 +17,27 @@ const (
 
 // User 系统用户。
 type User struct {
-	ID          string     `json:"id" gorm:"primaryKey"`
-	Username    string     `json:"username" gorm:"uniqueIndex"`
-	Password    string     `json:"password,omitempty"`
-	Email       string     `json:"email"`
-	DisplayName string     `json:"displayName"`
-	AvatarURL   string     `json:"avatarUrl"`
-	Role        UserRole   `json:"role"`
+	ID          string     `json:"id" gorm:"primaryKey;size:64"`
+	Username    string     `json:"username" gorm:"uniqueIndex;size:64"`
+	Password    string     `json:"password,omitempty" gorm:"size:255"`
+	Email       string     `json:"email" gorm:"size:191"`
+	DisplayName string     `json:"displayName" gorm:"size:191"`
+	AvatarURL   string     `json:"avatarUrl" gorm:"size:512"`
+	Role        UserRole   `json:"role" gorm:"size:16"`
 	Credits     int        `json:"credits"`
-	AffCode     string     `json:"affCode" gorm:"uniqueIndex"`
+	AffCode     string     `json:"affCode" gorm:"uniqueIndex;size:32"`
 	AffCount    int        `json:"affCount"`
-	InviterID   string     `json:"inviterId"`
-	GithubID    string     `json:"githubId"`
-	LinuxDoID   string     `json:"linuxDoId" gorm:"index"`
-	WechatID    string     `json:"wechatId"`
-	NewApiID    string     `json:"newApiId" gorm:"index"`
-	NewApiToken string     `json:"newApiToken,omitempty" gorm:"index"`
-	Status      UserStatus `json:"status"`
-	LastLoginAt string     `json:"lastLoginAt"`
+	InviterID   string     `json:"inviterId" gorm:"size:64"`
+	GithubID    string     `json:"githubId" gorm:"size:64"`
+	LinuxDoID   string     `json:"linuxDoId" gorm:"index;size:64"`
+	WechatID    string     `json:"wechatId" gorm:"size:64"`
+	NewApiID    string     `json:"newApiId" gorm:"index;size:64"`
+	NewApiToken string     `json:"newApiToken,omitempty" gorm:"index;size:255"`
+	Status      UserStatus `json:"status" gorm:"size:16"`
+	LastLoginAt string     `json:"lastLoginAt" gorm:"size:64"`
 	Extra       string     `json:"extra" gorm:"type:text"`
-	CreatedAt   string     `json:"createdAt"`
-	UpdatedAt   string     `json:"updatedAt"`
+	CreatedAt   string     `json:"createdAt" gorm:"size:64"`
+	UpdatedAt   string     `json:"updatedAt" gorm:"size:64"`
 }
 
 // UserList 用户分页结果。
@@ -87,15 +87,15 @@ const (
 
 // CreditLog 用户算力点变更流水。
 type CreditLog struct {
-	ID        string        `json:"id" gorm:"primaryKey"`
-	UserID    string        `json:"userId" gorm:"index"`
-	Type      CreditLogType `json:"type"`
+	ID        string        `json:"id" gorm:"primaryKey;size:64"`
+	UserID    string        `json:"userId" gorm:"index;size:64"`
+	Type      CreditLogType `json:"type" gorm:"size:32"`
 	Amount    int           `json:"amount"`
 	Balance   int           `json:"balance"`
-	RelatedID string        `json:"relatedId"`
-	Remark    string        `json:"remark"`
+	RelatedID string        `json:"relatedId" gorm:"size:64"`
+	Remark    string        `json:"remark" gorm:"size:512"`
 	Extra     string        `json:"extra" gorm:"type:text"`
-	CreatedAt string        `json:"createdAt"`
+	CreatedAt string        `json:"createdAt" gorm:"size:64"`
 }
 
 type CreditLogList struct {
