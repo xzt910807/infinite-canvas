@@ -13,15 +13,15 @@ type CanvasImageTask struct {
 	ChannelName     string `json:"channelName" gorm:"size:191"`
 	Status          string `json:"status" gorm:"size:32"`
 	Progress        int    `json:"progress"`
-	Prompt          string `json:"prompt" gorm:"type:text"`
+	Prompt          string `json:"prompt" gorm:"type:mediumtext"`
 	GenerationType  string `json:"generationType" gorm:"size:32"`
 	Endpoint        string `json:"endpoint" gorm:"size:191"`
 	ContentType     string `json:"contentType" gorm:"size:128"`
-	RequestBody     string `json:"requestBody" gorm:"type:text"`
-	ResponseBody    string `json:"responseBody" gorm:"type:text"`
-	Error           string `json:"error" gorm:"type:text"`
-	ErrorDetail     string `json:"errorDetail" gorm:"type:text"`
-	ImageURL        string `json:"imageUrl" gorm:"type:text"`
+	RequestBody     string `json:"requestBody" gorm:"type:mediumtext"`
+	ResponseBody    string `json:"responseBody" gorm:"type:mediumtext"`
+	Error           string `json:"error" gorm:"type:mediumtext"`
+	ErrorDetail     string `json:"errorDetail" gorm:"type:mediumtext"`
+	ImageURL        string `json:"imageUrl" gorm:"type:mediumtext"`
 	StorageKey      string `json:"storageKey" gorm:"size:512"`
 	Width           int    `json:"width"`
 	Height          int    `json:"height"`

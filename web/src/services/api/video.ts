@@ -180,8 +180,8 @@ async function createVideoRequestBody(config: AiConfig, model: string, prompt: s
             body.width = dimensions.width;
             body.height = dimensions.height;
         }
-        if (inputReferences.length === 1) body.image = inputReferences[0];
-        if (inputReferences.length > 1) body.extra_body = { image: inputReferences };
+        body.image = inputReferences[0];
+        // agnes-video API does not support multiple images, always use first only
         return body;
     }
 

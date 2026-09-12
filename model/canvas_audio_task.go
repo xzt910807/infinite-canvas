@@ -13,14 +13,14 @@ type CanvasAudioTask struct {
 	ChannelName     string `json:"channelName" gorm:"size:191"`
 	Status          string `json:"status" gorm:"size:32"`
 	Progress        int    `json:"progress"`
-	Prompt          string `json:"prompt" gorm:"type:text"`
+	Prompt          string `json:"prompt" gorm:"type:mediumtext"`
 	Endpoint        string `json:"endpoint" gorm:"size:191"`
 	ContentType     string `json:"contentType" gorm:"size:128"`
-	RequestBody     string `json:"requestBody" gorm:"type:text"`
-	ResponseBody    string `json:"responseBody" gorm:"type:text"`
-	Error           string `json:"error" gorm:"type:text"`
-	ErrorDetail     string `json:"errorDetail" gorm:"type:text"`
-	AudioURL        string `json:"audioUrl" gorm:"type:text"`
+	RequestBody     string `json:"requestBody" gorm:"type:mediumtext"`
+	ResponseBody    string `json:"responseBody" gorm:"type:mediumtext"`
+	Error           string `json:"error" gorm:"type:mediumtext"`
+	ErrorDetail     string `json:"errorDetail" gorm:"type:mediumtext"`
+	AudioURL        string `json:"audioUrl" gorm:"type:mediumtext"`
 	StorageKey      string `json:"storageKey" gorm:"size:512"`
 	MimeType        string `json:"mimeType" gorm:"size:128"`
 	Bytes           int64  `json:"bytes"`

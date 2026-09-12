@@ -7,6 +7,7 @@ RUN --mount=type=cache,target=/root/.bun/install/cache bun install --frozen-lock
 COPY VERSION /app/VERSION
 COPY CHANGELOG.md /app/CHANGELOG.md
 COPY web ./
+ENV NODE_OPTIONS=--max-old-space-size=512
 RUN bun run build
 
 # 构建 Go 后端入口。

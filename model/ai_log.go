@@ -12,9 +12,9 @@ type AICallLog struct {
 	Status          int    `json:"status" gorm:"index"`
 	DurationMs      int64  `json:"durationMs"`
 	Credits         int    `json:"credits"`
-	RequestBody     string `json:"requestBody" gorm:"type:text"`
-	ResponseBody    string `json:"responseBody" gorm:"type:text"`
-	Error           string `json:"error" gorm:"type:text"`
+	RequestBody     string `json:"requestBody" gorm:"type:mediumtext"`
+	ResponseBody    string `json:"responseBody" gorm:"type:mediumtext"`
+	Error           string `json:"error" gorm:"type:mediumtext"`
 	CreatedAt       string `json:"createdAt" gorm:"index;size:64"`
 }
 
