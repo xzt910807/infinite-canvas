@@ -180,8 +180,18 @@ async function createVideoRequestBody(config: AiConfig, model: string, prompt: s
             body.width = dimensions.width;
             body.height = dimensions.height;
         }
-        body.image = inputReferences[0];
-        // agnes-video API does not support multiple images, always use first only
+        if (inputReferences.length > 0) {
+            body.image = inputReferences[0];
+            body.images = inputReferences;
+            body.image_url = inputReferences[0];
+            body.first_frame_image_url = inputReferences[0];
+            if (inputReferences.length === 1) {
+                body.mode = "ti2vid";
+            } else {
+                body.mode = "keyframes";
+                body.extra_body = { mode: "keyframes", image: inputReferences };
+            }
+        }
         return body;
     }
 
